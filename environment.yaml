@@ -1,0 +1,47 @@
+name: flowtse
+channels:
+  # - pytorch-nightly
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  # - python
+
+  # - pytorch
+  # - pytorch-cuda=12.8
+  # - torchvision
+  # - torchaudio
+  - einops
+  - matplotlib
+  - numpy
+  - scipy
+  - pesq
+  - pystoi
+  - hydra-core
+  - tensorboard
+  - torchmetrics
+
+  - librosa
+  - onnxruntime
+  - requests
+
+  - pip
+  - pip:
+    - --extra-index-url https://download.pytorch.org/whl/cu128
+    - torch
+    - torchvision
+    - torchaudio
+    - pytorch-lightning
+    - torch_ema
+    - rich
+    - torchdiffeq
+    - wespeakerruntime
+    - soundfile
+
+# conda env update \
+#   --file environment.yaml \
+#   --prune
+
+# conda env update -f environment.yaml --prune

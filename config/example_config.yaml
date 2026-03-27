@@ -1,0 +1,83 @@
+# Example Configuration for train.py
+
+seed: 42
+logstdout: False
+
+# Model parameters for StochasticRegenerationModel
+model:
+  _target_: sgmse.model.StochasticRegenerationModel
+  lr: 0.0001   
+  ema_decay: 0.999
+  t_eps: 0.03 
+  loss_type_score: "mse"
+
+  backbone_score:
+    _target_: sgmse.backbones.ncsnpp.NCSNpp
+    scale_by_sigma: True
+    nonlinearity: "swish" 
+    nf: 128
+    # ch_mult: [1, 1, 2, 2, 2, 2, 2]
+    ch_mult: [1, 1, 2, 2, 2, 2, 2]
+    num_res_blocks: 2
+    attn_resolutions: [16]
+    centered: True
+    image_size: 128 # Default: 256 (usually inferred or handled internally)
+    approx_qk_dim: 1024
+
+  data_module:
+    _target_: datasets.librimix.SpecsDataModuleTSE
+    
+    val_mix_scp: /mnt/sdb/datasets/TSELM_list/list/libri2mix_dev/mix_clean.scp
+    val_regi_scp: /mnt/sdb/datasets/TSELM_list/list/libri2mix_dev/aux_s1.scp
+    val_clean_scp: /mnt/sdb/datasets/TSELM_list/list/libri2mix_dev/s1.scp
+    test_mix_scp: /mnt/sdb/datasets/TSELM_list/list/libri2mix_test/mix_clean.scp
+    test_regi_scp: /mnt/sdb/datasets/TSELM_list/list/libri2mix_test/aux_s1.scp
+    test_clean_scp: /mnt/sdb/datasets/TSELM_list/list/libri2mix_test/s1.scp
+
+    use_dynamic_mixing_train: True
+    
+    train_speaker_scp_for_dm: /mnt/sdb/datasets/TSELM_list/list/train/train_100_360.pt
+    epoch_num_for_dm: 50000
+    batch_size: 4
+    num_workers: 4
+
+    mix_length: 32640             # target_len = (num_frames-1) * hop_length, (256-1)*128=32640, (384-1)*128=49024
+    regi_length: 64080
+
+    # STFT parameters
+    n_fft: 510        # 254 for 128 frequency bins. 
+    hop_length: 128
+    window_type: "hann"
+    spec_factor: 0.15
+    spec_abs_exponent: 0.5
+
+    pin_memory: True
+    return_time: False
+
+trainer_args:
+  _target_: pytorch_lightning.Trainer
+  accumulate_grad_batches: 4
+  min_epochs: 1
+  max_epochs: 200
+  accelerator: gpu
+  deterministic: true
+  check_val_every_n_epoch: 1
+  devices: 2
+
+hydra:
+    run:
+        dir: exp/${now:%Y-%m-%d}_${now:%H-%M-%S}_${hydra.job.override_dirname}nf-64
+    job:
+        config:
+            override_dirname:
+                kv_sep: '-'
+                item_sep: '_'
+                # exclude_keys: 
+                #     - path.exp_root
+
+
+pretrained_ckpt_path: /home/minyeong.jeong/flowSS/FLOWTSE/exp/2025-06-17_16-53-16_nf-64/checkpoints/epoch036_sisdr_3326.88.ckpt
+# resume_from_checkpoint: /home/minyeong.jeong/flowSS/FLOWTSE/exp/2025-06-17_16-53-16_nf-64/checkpoints/epoch036_sisdr_3326.88.ckpt
+
+
+# nf=64, mix_length: 32640, regi_length: 64080, n_fft: 510, hop_length: 128 하면 11gb vram에 들어감

@@ -1,0 +1,82 @@
+# Default configuration for testing
+# You can override these settings from the command line.
+# Example: python test.py ckpt=/path/to/model.ckpt data.test_mix_scp=/path/to/mix.scp ...
+
+# --- Required arguments ---
+# These MUST be provided by the user via the command line, as they are specific to each run.
+ckpt: /home/minyeong/coding/flowss/FLOWTSE/exp/2025-08-12_17-45-17__dftse_noisy/best_sisdr/epoch040_sisdr_11.56.ckpt
+
+model:
+  _target_: sgmse.model.SingleStepRegenerationModel
+  lr: 0.0001   
+  ema_decay: 0.999
+  # t_eps: 0.03 
+  loss_type_score: "mse"
+
+  backbone_score:
+    _target_: sgmse.backbones.ncsnpp_usef.NCSNpp
+    scale_by_sigma: False
+    nonlinearity: "swish" 
+    nf: 128
+    ch_mult: [1, 1, 2, 2, 2, 2, 2]
+    num_res_blocks: 2
+    attn_resolutions: [16,]
+    centered: True
+    image_size: 256 # should be 128 for n_fft=254, 256 for n_fft=510
+    approx_qk_dim: 2048
+
+    conditional: False
+
+  data_module:
+    _target_: datasets.librimix.SpecsDataModuleTSE
+
+    val_mix_scp: /home/minyeong/dataset/flowtse_noisy_list/libri2mix_dev/mix_both.scp
+    val_regi_scp: /home/minyeong/dataset/flowtse_noisy_list/libri2mix_dev/aux_s1.scp
+    val_clean_scp: /home/minyeong/dataset/flowtse_noisy_list/libri2mix_dev/s1.scp
+    test_mix_scp: /home/minyeong/dataset/flowtse_noisy_list/libri2mix_test/mix_both.scp
+    test_regi_scp: /home/minyeong/dataset/flowtse_noisy_list/libri2mix_test/aux_s1.scp
+    test_clean_scp: /home/minyeong/dataset/flowtse_noisy_list/libri2mix_test/s1.scp
+
+    noise_path: /home/minyeong/dataset/wham_noise/tr
+
+    use_dynamic_mixing_train: True
+    
+    train_speaker_scp_for_dm: /home/minyeong/dataset/flowtse_list/train/train_100_360.pt
+    # epoch_num_for_dm: 100000
+    batch_size: 4
+    num_workers: 4
+
+    mix_length: null    
+    regi_length: null
+    # mix_length: 32640     # target_len = (num_frames-1) * hop_length, (256-1)*128=32640, (384-1)*128=49024
+    # regi_length: 64080
+
+    # STFT parameters
+    n_fft: 510        # 254 for 128 frequency bins. 510 for 256 frequency bins
+    hop_length: 128
+    window_type: "hann"
+    spec_factor: 0.15
+    spec_abs_exponent: 0.5
+
+    pin_memory: True
+    return_time: False
+
+
+# --- Model & Evaluation Arguments ---
+num_solver_steps: 1
+ensemble: False # If True, will average the outputs of multiple model evaluations
+
+# --- Output Arguments ---
+save_dir: "." # Results will be saved in the Hydra output folder
+
+hydra:
+    run:
+        dir: test_runs/dftse/${now:%Y-%m-%d}_${now:%H-%M-%S}_${hydra.job.override_dirname}_dftse_noisy_40epoch
+    job:
+        config:
+            override_dirname:
+                kv_sep: '-'
+                item_sep: '_'
+
+
+# python test.py --config-name=test_dftse_noisy
