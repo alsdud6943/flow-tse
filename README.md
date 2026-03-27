@@ -4,6 +4,15 @@ FLOWTSE is a Flow Matching-based target speaker extraction (TSE) project.
 Given a mixture and a short reference utterance from the target speaker, the
 model extracts the target speaker's clean speech.
 
+FLOWTSE leverages a key property of TSE: once the mixture speech and reference
+speech are given, the target speech is determined, so the corresponding flow
+trajectories do not intersect. This allows effective 1-step generation without
+flow rectification.
+
+As a result, FLOWTSE can outperform generative baselines such as DiffSep+SV,
+DDTSE, and DiffTSE with only a single inference step, using approximately 30x,
+100x, and 300x fewer total inference steps, respectively.
+
 The main clean setup in this repository uses:
 
 - `config/train_cfm.yaml` for training
